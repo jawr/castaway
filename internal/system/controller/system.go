@@ -1,69 +1,56 @@
 package controller
 
 import (
+	"github.com/jawr/castaway/internal/component/animator"
+	"github.com/jawr/castaway/internal/component/position"
+	"github.com/jawr/castaway/internal/component/speed"
 	"github.com/jawr/castaway/internal/entity"
 	"github.com/jawr/castaway/internal/event"
 	"github.com/jawr/castaway/internal/system"
-	"github.com/jawr/castaway/internal/system/animator"
 	"github.com/jawr/castaway/internal/system/input"
-	"github.com/jawr/castaway/internal/system/position"
 )
 
 type Controller struct {
-	components []*Component
-	lookup     map[entity.Entity]*Component
+	entities []entity.Entity
 }
 
 func NewController() *Controller {
 	return &Controller{
-		components: make([]*Component, 0),
-		lookup:     make(map[entity.Entity]*Component, 0),
+		entities: make([]entity.Entity, 0),
 	}
 }
 
-// Add Entity and it's Component to the system
-func (a *Controller) Add(c entity.Component) {
-	// not thread safe
-
-	ac, ok := c.(*Component)
-	if !ok {
+// Add Entity and it's entity.Entity to the system
+func (a *Controller) Add(e entity.Entity, flags entity.ComponentFlags) {
+	if !flags.Contains(entity.ComponentAnimator) && !flags.Contains(entity.ComponentPosition, entity.ComponentSpeed) {
 		return
 	}
 
-	if _, ok := a.lookup[ac.Entity]; ok {
-		return
+	for _, check := range a.entities {
+		if check == e {
+			return
+		}
 	}
 
-	a.components = append(a.components, ac)
-	a.lookup[ac.Entity] = ac
-}
-
-// get a component for an Entity
-func (a *Controller) Get(e entity.Entity) (entity.Component, bool) {
-	c, ok := a.lookup[e]
-	return c, ok
+	a.entities = append(a.entities, e)
 }
 
 // remove Entity from System
 func (a *Controller) Remove(e entity.Entity) {
-	if _, ok := a.lookup[e]; ok {
-		for idx := 0; idx < len(a.components); idx++ {
-			if a.components[idx].Entity == e {
-				a.components[idx] = a.components[len(a.components)-1]
-				a.components = a.components[:len(a.components)-1]
-				break
-			}
+	for idx := 0; idx < len(a.entities); idx++ {
+		if a.entities[idx] == e {
+			a.entities[idx] = a.entities[len(a.entities)-1]
+			a.entities = a.entities[:len(a.entities)-1]
+			break
 		}
-
-		delete(a.lookup, e)
 	}
 }
 
-// update components in the system
-func (a *Controller) Update(emanager *entity.Manager, systems *system.Manager, publisher event.Publisher) error {
-	for _, c := range a.components {
-		if !emanager.Exists(c.Entity) {
-			a.Remove(c.Entity)
+// update entities in the system
+func (a *Controller) Update(emanager *entity.Manager, publisher event.Publisher) error {
+	for _, e := range a.entities {
+		if !emanager.Exists(e) {
+			a.Remove(e)
 			continue
 		}
 	}
@@ -71,8 +58,8 @@ func (a *Controller) Update(emanager *entity.Manager, systems *system.Manager, p
 }
 
 // initialise the system by setting up subscriptions to topics
-func (a *Controller) SetupSubscriptions(systems *system.Manager, subscriber event.Subscriber) {
-	subscriber(event.TopicDirectionKeyPressed, a.handleDirectionKeyPressed(systems))
+func (a *Controller) SetupSubscriptions(emanager *entity.Manager, subscriber event.Subscriber) {
+	subscriber(event.TopicDirectionKeyPressed, a.handleDirectionKeyPressed(emanager))
 }
 
 // Used to check the type of this System
@@ -80,27 +67,30 @@ func (a *Controller) Type() system.SystemType {
 	return system.SystemTypeController
 }
 
-func (a *Controller) handleDirectionKeyPressed(systems *system.Manager) event.Subscription {
+func (a *Controller) handleDirectionKeyPressed(emanager *entity.Manager) event.Subscription {
 	// how do we close these bad boys
 	ch := make(event.Subscription, 1000)
 	go func() {
-		for ev := range ch {
-			e, ok := ev.(*input.EventDirectionKey)
+		for in := range ch {
+			ev, ok := in.(*input.EventDirectionKey)
 			if !ok {
 				continue
 			}
 
 			// if we have an animator, update it
-			for _, c := range a.components {
-				com, ok := systems.Get(system.SystemTypeAnimator).Get(c.Entity)
+			for _, e := range a.entities {
+				com, ok := emanager.GetComponent(e, entity.ComponentAnimator)
 				if ok {
-					com.(*animator.Component).SetRow(int(e.Direction))
+					com.(*animator.Component).SetRow(int(ev.Direction))
 					com.(*animator.Component).NextFrame()
 				}
 
-				com, ok = systems.Get(system.SystemTypePosition).Get(c.Entity)
+				com, ok = emanager.GetComponent(e, entity.ComponentPosition)
 				if ok {
-					com.(*position.Component).Move(e.Direction, c.speed)
+					scom, ok := emanager.GetComponent(e, entity.ComponentSpeed)
+					if ok {
+						com.(*position.Component).Move(ev.Direction, scom.(*speed.Component).Speed())
+					}
 				}
 			}
 

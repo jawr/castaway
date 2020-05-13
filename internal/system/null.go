@@ -16,7 +16,7 @@ func newNull() *Null {
 }
 
 // Add Entity and it's NullComponent to the system
-func (a *Null) Add(c entity.Component) {}
+func (a *Null) Add(e entity.Entity, f entity.ComponentFlags) {}
 
 // get a component for an Entity
 func (a *Null) Get(e entity.Entity) (entity.Component, bool) {
@@ -27,12 +27,12 @@ func (a *Null) Get(e entity.Entity) (entity.Component, bool) {
 func (a *Null) Remove(e entity.Entity) {}
 
 // update components in the system
-func (a *Null) Update(emanager *entity.Manager, systems *Manager, publisher event.Publisher) error {
+func (a *Null) Update(emanager *entity.Manager, publisher event.Publisher) error {
 	return nil
 }
 
 // initialise the system by setting up subscriptions to topics
-func (a *Null) SetupSubscriptions(systems *Manager, subscriber event.Subscriber) {}
+func (a *Null) SetupSubscriptions(emanager *entity.Manager, subscriber event.Subscriber) {}
 
 // Used to check the type of this System
 func (a *Null) Type() SystemType {

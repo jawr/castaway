@@ -19,9 +19,11 @@ func NewComponent(e entity.Entity, x, y float64) *Component {
 	}
 }
 
-func (c *Component) GetEntity() entity.Entity { return c.Entity }
-func (c Component) X() float64                { return c.x }
-func (c Component) Y() float64                { return c.y }
+func (c *Component) GetEntity() entity.Entity      { return c.Entity }
+func (c *Component) GetFlag() entity.ComponentFlag { return entity.ComponentPosition }
+
+func (c Component) X() float64 { return c.x }
+func (c Component) Y() float64 { return c.y }
 
 func (c *Component) Move(direction input.Direction, speed float64) {
 	switch direction {

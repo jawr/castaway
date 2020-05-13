@@ -9,15 +9,13 @@ type SystemType uint8
 
 type System interface {
 	// Add an Entity with specific component data
-	Add(entity.Component)
-	// get Component for an entity
-	Get(entity.Entity) (entity.Component, bool)
+	Add(entity.Entity, entity.ComponentFlags)
 	// Remove an Entity
 	Remove(entity.Entity)
 	// Called when the World updates
-	Update(*entity.Manager, *Manager, event.Publisher) error
+	Update(*entity.Manager, event.Publisher) error
 	// Called to setup our Subscriptions
-	SetupSubscriptions(*Manager, event.Subscriber)
+	SetupSubscriptions(*entity.Manager, event.Subscriber)
 	// The Type of a System
 	Type() SystemType
 }
@@ -32,7 +30,7 @@ type Manager struct {
 }
 
 // Initialise a new Manager with listed systems
-func NewManager(subscriber event.Subscriber, all ...System) *Manager {
+func NewManager(entityManager *entity.Manager, subscriber event.Subscriber, all ...System) *Manager {
 	manager := &Manager{
 		systems: make(map[SystemType]System, len(all)),
 		null:    newNull(),
@@ -40,7 +38,7 @@ func NewManager(subscriber event.Subscriber, all ...System) *Manager {
 
 	for _, s := range all {
 		// make sure the system subscribes to the topics it wants
-		s.SetupSubscriptions(manager, subscriber)
+		s.SetupSubscriptions(entityManager, subscriber)
 		manager.systems[s.Type()] = s
 	}
 
@@ -48,16 +46,16 @@ func NewManager(subscriber event.Subscriber, all ...System) *Manager {
 }
 
 // Call AddComponent on all Systems
-func (m *Manager) AddComponent(c entity.Component) {
+func (m *Manager) AddEntity(e entity.Entity, flags entity.ComponentFlags) {
 	for _, s := range m.systems {
-		s.Add(c)
+		s.Add(e, flags)
 	}
 }
 
 // Call Update on all systems
 func (m *Manager) Update(entityManager *entity.Manager, publisher event.Publisher) error {
 	for _, s := range m.systems {
-		if err := s.Update(entityManager, m, publisher); err != nil {
+		if err := s.Update(entityManager, publisher); err != nil {
 			return err
 		}
 	}

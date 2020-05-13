@@ -29,7 +29,8 @@ func NewComponent(e entity.Entity, frameWidth, frameHeight, totalRows, totalCols
 	}
 }
 
-func (c *Component) GetEntity() entity.Entity { return c.Entity }
+func (c *Component) GetEntity() entity.Entity      { return c.Entity }
+func (c *Component) GetFlag() entity.ComponentFlag { return entity.ComponentAnimator }
 
 func (c *Component) NextFrame() {
 

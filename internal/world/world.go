@@ -6,7 +6,6 @@ import (
 	"github.com/jawr/castaway/internal/event"
 	"github.com/jawr/castaway/internal/render"
 	"github.com/jawr/castaway/internal/system"
-	"github.com/jawr/castaway/internal/system/sprite"
 )
 
 // World represents ... the world, maybe one day we will have
@@ -31,7 +30,7 @@ func NewWorld(screenWidth, screenHeight int, allSystems ...system.System) *World
 	events := event.NewManager()
 
 	// create our systems
-	systems := system.NewManager(events.Subscribe, allSystems...)
+	systems := system.NewManager(entities, events.Subscribe, allSystems...)
 
 	// create our renderer
 	renderer := render.NewManager()
@@ -55,11 +54,12 @@ func (w *World) AddEntity(e entity.Entity) {
 // check if this component is a Sprite
 
 func (w *World) AddComponent(c entity.Component) {
-	w.systems.AddComponent(c)
-	// check if this can be rendered
-	switch c.(type) {
-	case *sprite.Component:
-		w.renderer.AddComponent(c)
+	e, flags := w.entities.AddComponent(c)
+
+	w.systems.AddEntity(e, flags)
+
+	if flags.Contains(entity.ComponentSprite) {
+		w.renderer.AddEntity(e)
 	}
 }
 
@@ -72,7 +72,7 @@ func (w *World) Update(screen *ebiten.Image) error {
 
 // Render!
 func (w *World) Draw(screen *ebiten.Image) {
-	w.renderer.Draw(w.entities, w.systems, screen)
+	w.renderer.Draw(w.entities, screen)
 }
 
 func (w *World) Layout(outsideWidth, outsideHeight int) (int, int) {

@@ -2,60 +2,63 @@ package render
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"github.com/jawr/castaway/internal/component/animator"
+	"github.com/jawr/castaway/internal/component/position"
+	"github.com/jawr/castaway/internal/component/sprite"
 	"github.com/jawr/castaway/internal/entity"
-	"github.com/jawr/castaway/internal/system"
-	"github.com/jawr/castaway/internal/system/animator"
-	"github.com/jawr/castaway/internal/system/position"
-	"github.com/jawr/castaway/internal/system/sprite"
 )
 
 type Manager struct {
-	components []entity.Component
+	entities []entity.Entity
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		components: make([]entity.Component, 0),
+		entities: make([]entity.Entity, 0),
 	}
 }
 
-func (m *Manager) AddComponent(c entity.Component) {
-	m.components = append(m.components, c)
+func (m *Manager) AddEntity(c entity.Entity) {
+	m.entities = append(m.entities, c)
 }
 
 func (m *Manager) Remove(e entity.Entity) {
-	// hopefully this will remove all components of entity, needs testing
-	for idx := 0; idx < len(m.components); idx++ {
-		if m.components[idx].GetEntity() == e {
-			m.components[idx] = m.components[len(m.components)-1]
-			m.components = m.components[:len(m.components)-1]
+	// hopefully this will remove all entities of entity, needs testing
+	for idx := 0; idx < len(m.entities); idx++ {
+		if m.entities[idx] == e {
+			m.entities[idx] = m.entities[len(m.entities)-1]
+			m.entities = m.entities[:len(m.entities)-1]
 		}
 	}
 }
 
-func (m *Manager) Draw(entities *entity.Manager, systems *system.Manager, screen *ebiten.Image) {
-	for _, c := range m.components {
-		e := c.GetEntity()
+func (m *Manager) Draw(emanager *entity.Manager, screen *ebiten.Image) {
+	for _, e := range m.entities {
 
-		if !entities.Exists(e) {
+		if !emanager.Exists(e) {
 			m.Remove(e)
 			continue
 		}
 
 		op := &ebiten.DrawImageOptions{}
 
-		// not safe
-		image := c.(*sprite.Component).Sprite()
+		// get our sprite
+		com, ok := emanager.GetComponent(e, entity.ComponentSprite)
+		if !ok {
+			continue
+		}
 
-		// get frame
-		com, ok := systems.Get(system.SystemTypeAnimator).Get(e)
+		image := com.(*sprite.Component).Sprite()
+
+		// try get frame
+		com, ok = emanager.GetComponent(e, entity.ComponentAnimator)
 		if ok {
 			frame := com.(*animator.Component)
 			image = image.SubImage(frame.GetFrameRect()).(*ebiten.Image)
 		}
 
 		// get position
-		com, ok = systems.Get(system.SystemTypePosition).Get(e)
+		com, ok = emanager.GetComponent(e, entity.ComponentPosition)
 		if ok {
 			vec := com.(*position.Component)
 			op.GeoM.Translate(vec.X(), vec.Y())

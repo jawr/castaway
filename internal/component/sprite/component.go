@@ -25,5 +25,6 @@ func NewComponent(e entity.Entity, path string) *Component {
 	}
 }
 
-func (c *Component) GetEntity() entity.Entity { return c.Entity }
-func (c *Component) Sprite() *ebiten.Image    { return c.sprite }
+func (c *Component) GetEntity() entity.Entity      { return c.Entity }
+func (c *Component) GetFlag() entity.ComponentFlag { return entity.ComponentSprite }
+func (c *Component) Sprite() *ebiten.Image         { return c.sprite }
