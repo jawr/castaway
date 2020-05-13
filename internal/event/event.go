@@ -4,14 +4,16 @@ import "sync"
 
 type Topic uint8
 
-type Event struct{}
+type Event interface {
+	Topic() Topic
+}
 
 // External callable functions
-type Publisher func(Topic, Event)
+type Publisher func(Event)
 type Subscriber func(Topic, Subscription)
 
 // A callback function that is called with an Event for an Topic
-type Subscription chan<- Event
+type Subscription chan Event
 
 type Manager struct {
 	// map of Subscriptions for each Topic
@@ -28,9 +30,9 @@ func NewManager() *Manager {
 }
 
 // Handle published events
-func (m *Manager) Publish(topic Topic, e Event) {
+func (m *Manager) Publish(e Event) {
 	m.subscriptionsMtx.RLock()
-	if subs, ok := m.subscriptions[topic]; ok {
+	if subs, ok := m.subscriptions[e.Topic()]; ok {
 		// take a copy of our subscriptions so we can drop
 		// the lock quicker, might want to remove this if
 		// we care about memory usage

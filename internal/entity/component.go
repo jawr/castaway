@@ -1,3 +1,5 @@
 package entity
 
-type Component interface{}
+type Component interface {
+	GetEntity() Entity
+}
