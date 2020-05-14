@@ -30,10 +30,11 @@ func NewWorld(screenWidth, screenHeight int, allSystems ...system.System) *World
 	events := event.NewManager()
 
 	// create our systems
-	systems := system.NewManager(entities, events.Subscribe, allSystems...)
+	systems := system.NewManager(entities, events.Publish, events.Subscribe, allSystems...)
 
 	// create our renderer
-	renderer := render.NewManager()
+	renderer := render.NewManager(screenWidth, screenHeight)
+	renderer.SetupSubscriptions(entities, events.Publish, events.Subscribe)
 
 	return &World{
 		screenWidth:  screenWidth,

@@ -43,7 +43,8 @@ func (a *Input) Update(emanager *entity.Manager, publisher event.Publisher) erro
 }
 
 // initialise the system by setting up subscriptions to topics
-func (a *Input) SetupSubscriptions(emanager *entity.Manager, subscriber event.Subscriber) {}
+func (a *Input) SetupSubscriptions(emanager *entity.Manager, publisher event.Publisher, subscriber event.Subscriber) {
+}
 
 // Used to check the type of this System
 func (a *Input) Type() system.SystemType {

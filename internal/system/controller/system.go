@@ -8,6 +8,7 @@ import (
 	"github.com/jawr/castaway/internal/event"
 	"github.com/jawr/castaway/internal/system"
 	"github.com/jawr/castaway/internal/system/input"
+	"github.com/peterhellberg/gfx"
 )
 
 type Controller struct {
@@ -47,7 +48,7 @@ func (a *Controller) Remove(e entity.Entity) {
 }
 
 // update entities in the system
-func (a *Controller) Update(emanager *entity.Manager, publisher event.Publisher) error {
+func (a *Controller) Update(emanager *entity.Manager, publish event.Publisher) error {
 	for _, e := range a.entities {
 		if !emanager.Exists(e) {
 			a.Remove(e)
@@ -58,8 +59,8 @@ func (a *Controller) Update(emanager *entity.Manager, publisher event.Publisher)
 }
 
 // initialise the system by setting up subscriptions to topics
-func (a *Controller) SetupSubscriptions(emanager *entity.Manager, subscriber event.Subscriber) {
-	subscriber(event.TopicDirectionKeyPressed, a.handleDirectionKeyPressed(emanager))
+func (a *Controller) SetupSubscriptions(emanager *entity.Manager, publish event.Publisher, subscriber event.Subscriber) {
+	subscriber(event.TopicDirectionKeyPressed, a.handleDirectionKeyPressed(emanager, publish))
 }
 
 // Used to check the type of this System
@@ -67,7 +68,7 @@ func (a *Controller) Type() system.SystemType {
 	return system.SystemTypeController
 }
 
-func (a *Controller) handleDirectionKeyPressed(emanager *entity.Manager) event.Subscription {
+func (a *Controller) handleDirectionKeyPressed(emanager *entity.Manager, publish event.Publisher) event.Subscription {
 	// how do we close these bad boys
 	ch := make(event.Subscription, 1000)
 	go func() {
@@ -87,9 +88,21 @@ func (a *Controller) handleDirectionKeyPressed(emanager *entity.Manager) event.S
 
 				com, ok = emanager.GetComponent(e, entity.ComponentPosition)
 				if ok {
+
+					pos := com.(*position.Component)
+					ox := pos.X
+					oy := pos.Y
+
 					scom, ok := emanager.GetComponent(e, entity.ComponentSpeed)
 					if ok {
-						com.(*position.Component).Move(ev.Direction, scom.(*speed.Component).Speed())
+						pos.Move(ev.Direction, scom.(*speed.Component).Speed())
+
+						// publish move event
+						publish(&EventMove{
+							Entity: e,
+							Origin: gfx.Vec{ox, oy},
+							New:    pos.Vec,
+						})
 					}
 				}
 			}

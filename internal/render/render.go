@@ -1,20 +1,27 @@
 package render
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/jawr/castaway/internal/component/animator"
 	"github.com/jawr/castaway/internal/component/position"
 	"github.com/jawr/castaway/internal/component/sprite"
 	"github.com/jawr/castaway/internal/entity"
+	"github.com/jawr/castaway/internal/event"
 )
 
 type Manager struct {
 	entities []entity.Entity
+
+	cam *camera
 }
 
-func NewManager() *Manager {
+func NewManager(width, height int) *Manager {
 	return &Manager{
 		entities: make([]entity.Entity, 0),
+		cam:      newCamera(width, height),
 	}
 }
 
@@ -30,6 +37,10 @@ func (m *Manager) Remove(e entity.Entity) {
 			m.entities = m.entities[:len(m.entities)-1]
 		}
 	}
+}
+
+func (m *Manager) SetupSubscriptions(emanager *entity.Manager, publisher event.Publisher, subscriber event.Subscriber) {
+	subscriber(event.TopicMove, m.cam.handleMove())
 }
 
 func (m *Manager) Draw(emanager *entity.Manager, screen *ebiten.Image) {
@@ -61,9 +72,22 @@ func (m *Manager) Draw(emanager *entity.Manager, screen *ebiten.Image) {
 		com, ok = emanager.GetComponent(e, entity.ComponentPosition)
 		if ok {
 			vec := com.(*position.Component)
-			op.GeoM.Translate(vec.X(), vec.Y())
+			op.GeoM.Translate(vec.X, vec.Y)
 		}
+
+		op.GeoM.Translate(-m.cam.X, -m.cam.Y)
 
 		screen.DrawImage(image, op)
 	}
+
+	// draw our bound
+	bound, err := ebiten.NewImage(int(m.cam.boundWidth), int(m.cam.boundHeight), ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(m.cam.bound.X, m.cam.bound.Y)
+	screen.DrawImage(bound, op)
+
+	ebitenutil.DrawRect(screen, m.cam.bound.X-m.cam.X, m.cam.bound.Y-m.cam.Y, m.cam.boundWidth, m.cam.boundHeight, color.NRGBA{0xff, 0x00, 0x00, 0x11})
 }

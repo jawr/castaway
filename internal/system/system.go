@@ -15,7 +15,7 @@ type System interface {
 	// Called when the World updates
 	Update(*entity.Manager, event.Publisher) error
 	// Called to setup our Subscriptions
-	SetupSubscriptions(*entity.Manager, event.Subscriber)
+	SetupSubscriptions(*entity.Manager, event.Publisher, event.Subscriber)
 	// The Type of a System
 	Type() SystemType
 }
@@ -30,7 +30,7 @@ type Manager struct {
 }
 
 // Initialise a new Manager with listed systems
-func NewManager(entityManager *entity.Manager, subscriber event.Subscriber, all ...System) *Manager {
+func NewManager(entityManager *entity.Manager, publisher event.Publisher, subscriber event.Subscriber, all ...System) *Manager {
 	manager := &Manager{
 		systems: make(map[SystemType]System, len(all)),
 		null:    newNull(),
@@ -38,7 +38,7 @@ func NewManager(entityManager *entity.Manager, subscriber event.Subscriber, all 
 
 	for _, s := range all {
 		// make sure the system subscribes to the topics it wants
-		s.SetupSubscriptions(entityManager, subscriber)
+		s.SetupSubscriptions(entityManager, publisher, subscriber)
 		manager.systems[s.Type()] = s
 	}
 

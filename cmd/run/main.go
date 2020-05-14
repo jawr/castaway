@@ -34,13 +34,17 @@ func run() error {
 		controller.NewController(),
 	)
 
+	island := entity.NewEntity()
+	w.AddEntity(island)
+	w.AddComponent(sprite.NewComponent(island, "./assets/island.png"))
+
 	// create our player
 	player := entity.NewEntity()
 	w.AddEntity(player)
 	w.AddComponent(animator.NewComponent(player, 16, 32, 4, 4, time.Millisecond*200))
 	w.AddComponent(position.NewComponent(player, 0, 0))
 	w.AddComponent(sprite.NewComponent(player, "./assets/wilson.png"))
-	w.AddComponent(speed.NewComponent(player, 1.0))
+	w.AddComponent(speed.NewComponent(player, 5.0))
 
 	if err := ebiten.RunGame(w); err != nil {
 		return err
